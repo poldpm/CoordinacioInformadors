@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Panell de control — Dades</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#37474f">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+
+<header>
+  <button id="btnEnrere" class="icon-btn" title="Enrere" style="visibility:hidden;">‹</button>
+  <h1 id="titolCap">Panell de control</h1>
+  <button id="btnRecarregar" class="icon-btn" title="Recarregar dades">⟳</button>
+</header>
+
+<!-- PANTALLA 1: triar entitat (CEINR / PN) -->
+<section id="screen-entitat" class="screen">
+  <div class="tria-gran">
+    <h2>Quines dades vols consultar?</h2>
+    <div class="tria-botons">
+      <button class="tria-btn ceinr" data-entitat="ceinr">
+        <span class="tria-emoji">🔵</span>
+        <span class="tria-nom">CEINR</span>
+      </button>
+      <button class="tria-btn pn" data-entitat="pn">
+        <span class="tria-emoji">🟢</span>
+        <span class="tria-nom">Parc Natural</span>
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- PANTALLA 2: triar tipus (Gossos / Itineràncies) -->
+<section id="screen-tipus" class="screen">
+  <div class="tria-gran">
+    <h2 id="tipusSubtitol">Què vols veure?</h2>
+    <div class="tria-botons">
+      <button class="tria-btn" data-tipus="gossos">
+        <span class="tria-emoji">🐾</span>
+        <span class="tria-nom">Gossos</span>
+      </button>
+      <button class="tria-btn" data-tipus="itinerancia">
+        <span class="tria-emoji">🗺️</span>
+        <span class="tria-nom">Itineràncies</span>
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- PANTALLA 3: panell de control (filtres + resultats) -->
+<section id="screen-panell" class="screen">
+
+  <div id="estatCarrega" class="estat-carrega">
+    <div class="spinner"></div>
+    <p>Carregant dades…</p>
+  </div>
+
+  <div id="panellContingut" style="display:none;">
+
+    <div class="resum-font">
+      <span id="fontDades" class="font-badge"></span>
+      <span id="totalRegistres" class="font-badge secundari"></span>
+    </div>
+
+    <!-- FILTRES -->
+    <div class="filtres-card">
+      <div class="filtres-titol">
+        <h3>🔎 Filtres</h3>
+        <button id="btnNetejarFiltres" class="btn-text">Netejar tot</button>
+      </div>
+      <div id="filtresContenidor"></div>
+      <button id="btnAfegirFiltre" class="btn-afegir-filtre">+ Afegir condició</button>
+    </div>
+
+    <!-- QUÈ MOSTRAR -->
+    <div class="filtres-card">
+      <div class="filtres-titol"><h3>📊 Què vols veure</h3></div>
+
+      <label class="camp-label">Mètrica (què comptar/sumar)</label>
+      <select id="selMetrica" class="control-select"></select>
+
+      <label class="camp-label">Agrupar per</label>
+      <select id="selAgrupar" class="control-select"></select>
+
+      <label class="camp-label">Tipus de visualització</label>
+      <div class="tria-vista">
+        <button class="vista-btn actiu" data-vista="barres">📊 Barres</button>
+        <button class="vista-btn" data-vista="linia">📈 Línia</button>
+        <button class="vista-btn" data-vista="pastis">🥧 Pastís</button>
+        <button class="vista-btn" data-vista="taula">📋 Taula</button>
+      </div>
+    </div>
+
+    <button id="btnVeureDades" class="btn-veure">Veure dades</button>
+
+    <!-- RESULTATS -->
+    <div id="resultats" class="resultats" style="display:none;">
+      <div class="resultats-totals" id="resultatsTotals"></div>
+      <div class="grafic-wrap" id="graficWrap">
+        <canvas id="grafic"></canvas>
+      </div>
+      <div id="taulaWrap" class="taula-wrap"></div>
+    </div>
+
+  </div>
+</section>
+
+<div id="toast" class="toast"></div>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
