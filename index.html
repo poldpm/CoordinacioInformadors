@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Quadre de comandament — Dades de camp</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#16261d">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- Barra superior només mòbil -->
+<div class="mobil-top">
+  <button class="mobil-toggle" id="mobilToggle">☰</button>
+  <span class="marca">Panell de control</span>
+  <span style="width:40px;"></span>
+</div>
+<div class="rerefons" id="rerefons"></div>
+
+<div class="app-shell">
+
+  <!-- ============ BARRA LATERAL ============ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-cap">
+      <div class="marca">Panell de control</div>
+      <div class="subtitol">Dades de camp</div>
+    </div>
+
+    <div class="sidebar-cos">
+
+      <!-- Entitat -->
+      <div class="bloc">
+        <div class="bloc-titol">Espai</div>
+        <div class="segments" id="segEntitat">
+          <button class="segment" data-entitat="ceinr">CEINR</button>
+          <button class="segment" data-entitat="pn">Parc Natural</button>
+        </div>
+      </div>
+
+      <!-- Tipus -->
+      <div class="bloc">
+        <div class="bloc-titol">Conjunt de dades</div>
+        <div class="segments" id="segTipus">
+          <button class="segment" data-tipus="gossos">🐾 Gossos</button>
+          <button class="segment" data-tipus="itinerancia">🗺️ Itineràncies</button>
+        </div>
+      </div>
+
+      <!-- Contingut dependent de dades -->
+      <div id="controlsDinamics" style="display:none;">
+
+        <!-- Mètriques (multi-selecció) -->
+        <div class="bloc">
+          <div class="bloc-titol">
+            Què vols veure
+            <button id="btnNetejarMetriques" class="mini-net">Netejar</button>
+          </div>
+          <p class="bloc-ajuda">Tria una o més dades. Es dibuixaran al gràfic.</p>
+          <div class="metriques-chips" id="metriquesChips"></div>
+        </div>
+
+        <!-- Agrupar (com a botons clars) -->
+        <div class="bloc">
+          <div class="bloc-titol">Repartit per</div>
+          <p class="bloc-ajuda">Com vols separar les dades al gràfic.</p>
+          <div class="agrupa-grid" id="agrupaGrid"></div>
+        </div>
+
+        <!-- Filtres ràpids -->
+        <div class="bloc" id="blocFiltres">
+          <div class="bloc-titol">
+            Mostrar només
+            <button id="btnNetejarFiltres" class="mini-net">Tot</button>
+          </div>
+          <p class="bloc-ajuda">Deixa-ho buit per veure-ho tot, o marca què vols mostrar.</p>
+          <div id="filtresRapids"></div>
+        </div>
+
+        <!-- Vista -->
+        <div class="bloc">
+          <div class="bloc-titol">Tipus de gràfic</div>
+          <div class="vista-grid" id="vistaGrid">
+            <button class="vista-op actiu" data-vista="barres">Barres</button>
+            <button class="vista-op" data-vista="linia">Línia</button>
+            <button class="vista-op" data-vista="pastis">Pastís</button>
+            <button class="vista-op" data-vista="taula">Només taula</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="sidebar-peu">
+      <button id="btnGenerar" class="btn-generar" disabled>Veure el gràfic</button>
+    </div>
+  </aside>
+
+  <!-- ============ PISSARRA ============ -->
+  <main class="pissarra">
+    <div class="pissarra-cap">
+      <svg class="corbes" id="corbes" preserveAspectRatio="none"></svg>
+      <div class="cap-contingut">
+        <div class="cap-fila">
+          <div>
+            <div class="pissarra-titol" id="pissarraTitol">Panell de control</div>
+            <div class="pissarra-sub" id="pissarraSub">Tria un espai i un conjunt de dades per començar</div>
+          </div>
+          <div class="cap-accions" id="capAccions" style="display:none;">
+            <button class="btn-accio" id="btnRecords">🏆 Rècords</button>
+            <button class="btn-accio" id="btnRecompte">📋 Recompte total</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pissarra-cos" id="pissarraCos">
+      <div class="estat-buit" id="estatBuit">
+        <div class="icona-gran">🗺️</div>
+        <h3>Comença aquí</h3>
+        <p>A l'esquerra, tria un espai (CEINR o Parc Natural) i què vols consultar (gossos o itineràncies). Després podràs triar què veure i prémer «Veure el gràfic».</p>
+      </div>
+    </div>
+  </main>
+
+</div>
+
+<!-- Modal per a Rècords / Recompte -->
+<div class="modal-fons" id="modalFons">
+  <div class="modal">
+    <div class="modal-cap">
+      <h2 id="modalTitol">Rècords</h2>
+      <button class="modal-tancar" id="modalTancar">✕</button>
+    </div>
+    <div class="modal-cos" id="modalCos"></div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
