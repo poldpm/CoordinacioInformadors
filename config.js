@@ -14,12 +14,12 @@
 
 const FONTS = {
   ceinr: {
-    gossos:      "ENGANXA_URL_EXEC_GOSSOS_CEINR",
-    itinerancia: "ENGANXA_URL_EXEC_ITINERANCIA_CEINR"
+    gossos:      "https://script.google.com/macros/s/AKfycbzjN0OFizFNdM2x0nE4miK1SWdUXGOppfc5WKsKU11Mrki1iaSHzWY_GAzIL8MIDASs/exec",
+    itinerancia: "https://script.google.com/macros/s/AKfycbxvwXfBN6Gf5j7sNaa3poXKZbLx8WxRNZun_gZxlctbUC2E4WVrp6ayXTah_X33gTHZ/exec"
   },
   pn: {
-    gossos:      "ENGANXA_URL_EXEC_GOSSOS_PN",
-    itinerancia: "ENGANXA_URL_EXEC_ITINERANCIA_PN"
+    gossos:      "https://script.google.com/macros/s/AKfycbwXfARxx3B58cUCCh9hUi4vXQg7Z6u38345r_zm0DJaM4NOWhw_xLb43gVnJEY67WF2_g/exec",
+    itinerancia: "https://script.google.com/macros/s/AKfycbx9QwXzshuIMwb5nkVVKtP9GB5kX9kPTAyyHRLZ7FfHTAbptXpPHnJsowGcn7ASi4zGdg/exec"
   }
 };
 
