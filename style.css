@@ -838,3 +838,30 @@ table.dades tr:hover td { background: rgba(45,90,61,0.03); }
   font-size: 0.82rem;
   color: var(--gris-cota);
 }
+
+/* Taula d'observacions */
+.taula-obs { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.taula-obs th {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 2px solid var(--tinta);
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--tinta2);
+  white-space: nowrap;
+}
+.taula-obs td {
+  padding: 9px 10px;
+  border-bottom: 1px solid rgba(0,0,0,0.07);
+  vertical-align: top;
+}
+.taula-obs tr:hover td { background: rgba(45,90,61,0.03); }
+.taula-obs .obs-quan {
+  white-space: nowrap;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--tinta);
+}
+.taula-obs .obs-on { color: var(--gris-cota); font-size: 0.85rem; }
+.taula-obs .obs-text { white-space: pre-wrap; line-height: 1.45; min-width: 220px; }

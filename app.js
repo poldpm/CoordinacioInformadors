@@ -152,6 +152,7 @@ async function carregarFull() {
     document.getElementById('controlsDinamics').style.display = '';
     document.getElementById('btnGenerar').disabled = false;
     document.getElementById('capAccions').style.display = 'flex';
+    actualitzarBotoObservacions();
     mostrarBenvinguda();
     actualitzarTitolPissarra();
   } catch (e) {
@@ -1486,6 +1487,93 @@ function capcaleraFiltre_(nFiles) {
          ' · ' + nFiles + (nFiles === 1 ? ' registre' : ' registres') + '</p>';
 }
 
+// ---------- OBSERVACIONS ----------
+// Mostra el que han escrit els informadors al camp "Observacions",
+// respectant el que s'estigui mirant (àrea, mes, punts...).
+function colObservacions() {
+  return columnes.find(function (c) { return c.nom.toLowerCase().trim() === 'observacions'; });
+}
+
+// Ensenya o amaga el botó segons si aquestes dades tenen observacions
+function actualitzarBotoObservacions() {
+  const btn = document.getElementById('btnObservacions');
+  if (!btn) return;
+  btn.style.display = colObservacions() ? '' : 'none';
+}
+
+function obrirObservacions() {
+  const cos = document.getElementById('modalCos');
+  const cObs = colObservacions();
+  const cData = colData();
+  const cPunt = columnes.find(function (c) { return c.nom.toLowerCase().trim() === 'punt'; });
+  const cTipus = columnes.find(function (c) { return c.nom.toLowerCase().trim() === 'tipus'; });
+  const cArea = colZona();
+
+  if (!cObs) {
+    cos.innerHTML = '<p class="modal-buit">Aquestes dades no tenen camp d\'observacions.</p>';
+    document.getElementById('modalTitol').textContent = 'Observacions';
+    obrirModal();
+    return;
+  }
+
+  // Només les files que s'estan mirant I que tenen alguna cosa escrita
+  const files = (dades ? aplicarFiltres() : []).filter(function (f) {
+    const t = f[cObs.index];
+    return t !== null && t !== undefined && String(t).trim() !== '';
+  });
+
+  // Ordenades cronològicament
+  const items = files.map(function (f) {
+    const d = cData ? dataLocal(f[cData.index]) : null;
+    return {
+      ordre: d ? d.getTime() : 0,
+      quan: d ? (diaLocalEtiqueta(d) + ' · ' + horaEtiqueta(d)) : '(sense data)',
+      area: cArea ? String(f[cArea.index] || '') : '',
+      tipus: cTipus ? String(f[cTipus.index] || '') : '',
+      punt: cPunt ? String(f[cPunt.index] || '') : '',
+      text: String(f[cObs.index])
+    };
+  }).sort(function (a, b) { return a.ordre - b.ordre; });
+
+  const resum = resumFiltresActius();
+
+  if (items.length === 0) {
+    cos.innerHTML = '<p class="modal-filtre">' + escapar(resum ? ('Només: ' + resum) : 'Totes les dades') + '</p>' +
+      '<p class="modal-buit">No hi ha cap observació apuntada amb el que has triat.</p>';
+    document.getElementById('modalTitol').textContent = 'Observacions';
+    obrirModal();
+    return;
+  }
+
+  // Si hi ha més d'una àrea, la mostrem en una columna a part
+  const arees = {};
+  items.forEach(function (i) { if (i.area) arees[i.area] = 1; });
+  const mostrarArea = Object.keys(arees).length > 1;
+
+  let html = '<p class="modal-filtre">' +
+    escapar(resum ? ('Només: ' + resum) : 'Totes les dades') + ' · ' +
+    items.length + (items.length === 1 ? ' observació' : ' observacions') + '</p>';
+
+  html += '<table class="taula-obs"><thead><tr><th>Dia i hora</th>';
+  if (mostrarArea) html += '<th>Àrea</th>';
+  html += '<th>On</th><th>Observació</th></tr></thead><tbody>';
+
+  items.forEach(function (i) {
+    const on = [i.tipus, i.punt].filter(Boolean).join(' · ');
+    html += '<tr>' +
+      '<td class="obs-quan">' + escapar(i.quan) + '</td>' +
+      (mostrarArea ? '<td class="obs-on">' + escapar(i.area) + '</td>' : '') +
+      '<td class="obs-on">' + escapar(on || '—') + '</td>' +
+      '<td class="obs-text">' + escapar(i.text) + '</td>' +
+      '</tr>';
+  });
+  html += '</tbody></table>';
+
+  cos.innerHTML = html;
+  document.getElementById('modalTitol').textContent = 'Observacions';
+  obrirModal();
+}
+
 // ---------- RECOMPTE TOTAL ----------
 function obrirRecompte() {
   const items = metriquesItem();
@@ -1623,6 +1711,7 @@ function tancarModal() { document.getElementById('modalFons').classList.remove('
 
 document.getElementById('btnRecords').addEventListener('click', obrirRecords);
 document.getElementById('btnRecompte').addEventListener('click', obrirRecompte);
+document.getElementById('btnObservacions').addEventListener('click', obrirObservacions);
 document.getElementById('modalTancar').addEventListener('click', tancarModal);
 document.getElementById('modalFons').addEventListener('click', (e) => {
   if (e.target.id === 'modalFons') tancarModal();
