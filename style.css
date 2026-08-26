@@ -810,3 +810,31 @@ table.dades tr:hover td { background: rgba(45,90,61,0.03); }
   font-weight: 600;
   color: var(--tinta2);
 }
+
+/* Taula de detall per hores: una columna per entrada del dia */
+.taula-hores th { white-space: nowrap; }
+.taula-hores .cel-dia { font-weight: 700; white-space: nowrap; }
+.taula-hores .cel-buida { color: var(--gris-cota); text-align: center; }
+.taula-hores .cel-hora { vertical-align: top; }
+.ch-hora {
+  display: block;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--senyal);
+}
+.ch-valor {
+  display: block;
+  font-variant-numeric: tabular-nums;
+  margin-top: 1px;
+}
+.ch-punt {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--gris-cota);
+  margin-top: 2px;
+}
+.taula-nota {
+  margin: 0 0 10px;
+  font-size: 0.82rem;
+  color: var(--gris-cota);
+}

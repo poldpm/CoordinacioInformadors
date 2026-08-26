@@ -312,10 +312,20 @@ function muntarAgrupar() {
       cont.querySelectorAll('.agrupa-op').forEach(b => b.classList.remove('actiu'));
       btn.classList.add('actiu');
       agruparSel = op.valor;
+      actualitzarVisibilitatVista();
     });
     cont.appendChild(btn);
     if (i === 0) { btn.classList.add('actiu'); agruparSel = op.valor; }
   });
+  actualitzarVisibilitatVista();
+}
+
+// El detall per hores sempre és una taula: amaguem el tipus de gràfic
+// perquè no sembli que no funciona.
+function actualitzarVisibilitatVista() {
+  const bloc = document.getElementById('blocVista');
+  if (!bloc) return;
+  bloc.style.display = (granDe(agruparSel) === 'hores') ? 'none' : '';
 }
 
 // Opcions d'agrupament: NOMÉS temps (mes/setmana/dia). La zona, àrea i tipus
@@ -327,8 +337,167 @@ function construirOpcionsAgrupar() {
     ops.push({ nom: 'Per mes', valor: cData.index + ':mes' });
     ops.push({ nom: 'Per setmana', valor: cData.index + ':setmana' });
     ops.push({ nom: 'Per dia', valor: cData.index + ':dia' });
+    ops.push({ nom: 'Per franja horària', valor: cData.index + ':franja' });
+    ops.push({ nom: 'Per hores (detall)', valor: cData.index + ':hores' });
   }
   return ops;
+}
+
+// ============================================================
+// HORES — veure a quina hora s'ha fet cada entrada
+// ------------------------------------------------------------
+// IMPORTANT: el full envia les dates en horari UTC (toISOString).
+// Per mirar les HORES cal passar-les a l'hora local (la d'aquí), si no
+// tot sortiria desplaçat una o dues hores segons l'època de l'any.
+// ============================================================
+
+// Té hora? (les dates "soles", sense hora, no serveixen per aquesta vista)
+function teHora(v) {
+  return /^\d{4}-\d{2}-\d{2}T/.test(String(v));
+}
+
+// Passa el valor del full a un objecte Date en hora LOCAL
+function dataLocal(v) {
+  if (!teHora(v)) return null;
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function dosDigits(n) { return (n < 10 ? '0' : '') + n; }
+function diaLocalClau(d) {
+  return d.getFullYear() + '-' + dosDigits(d.getMonth() + 1) + '-' + dosDigits(d.getDate());
+}
+function diaLocalEtiqueta(d) {
+  return dosDigits(d.getDate()) + '/' + dosDigits(d.getMonth() + 1) + '/' + d.getFullYear();
+}
+function horaEtiqueta(d) {
+  return dosDigits(d.getHours()) + ':' + dosDigits(d.getMinutes());
+}
+
+// Nom curt de la mètrica: a la vista de detall cada cel·la és UNA lectura,
+// no una suma, així que no hi posem el prefix "Suma de".
+function nomMetricaNet(m) {
+  return String(nomMetrica(m)).replace(/^Suma de /, '').replace(/^Mitjana de /, '');
+}
+
+// Quant suma UNA fila a una mètrica concreta
+function valorDeFila(fila, metrica) {
+  if (metrica === '__count__' || metrica === '__pct__') return 1;
+  if (String(metrica).indexOf('cond:') === 0) {
+    const p = String(metrica).split(':');
+    const ci = Number(p[1]);
+    const valorCond = p.slice(2).join(':');
+    return String(fila[ci]) === valorCond ? 1 : 0;
+  }
+  const p = String(metrica).split(':');
+  const ci = Number(p[1]);
+  const v = aNumero(fila[ci]);
+  return isNaN(v) ? 0 : v;
+}
+
+// ---------- Vista "Per hores": una fila per dia, una columna per entrada ----------
+function generarInformeHores(files) {
+  const cData = colData();
+  if (!cData) { toast('No hi ha columna de data en aquestes dades.'); return; }
+  const cPunt = columnes.find(c => c.nom.toLowerCase().trim() === 'punt');
+
+  const dies = {};
+  let senseHora = 0;
+  files.forEach(f => {
+    const d = dataLocal(f[cData.index]);
+    if (!d) { senseHora++; return; }
+    const clau = diaLocalClau(d);
+    if (!dies[clau]) dies[clau] = { clau: clau, etiqueta: diaLocalEtiqueta(d), entrades: [] };
+    dies[clau].entrades.push({
+      ordre: d.getTime(),
+      hora: horaEtiqueta(d),
+      punt: cPunt ? String(f[cPunt.index] || '') : '',
+      valors: metriquesSel.map(m => valorDeFila(f, m))
+    });
+  });
+
+  const llista = Object.keys(dies).sort().map(k => dies[k]);
+  llista.forEach(dia => dia.entrades.sort((a, b) => a.ordre - b.ordre));
+  const maxEntrades = llista.reduce((m, d) => Math.max(m, d.entrades.length), 0);
+
+  if (llista.length === 0) {
+    document.getElementById('pissarraCos').innerHTML =
+      '<div class="estat-buit"><div class="icona-gran">🕗</div><h3>Sense hores</h3>' +
+      '<p>Aquestes dades no porten l\'hora de cada entrada, així que no es pot fer el detall per hores.</p></div>';
+    return;
+  }
+
+  // Sèries només per a les targetes de dalt (totals)
+  const series = metriquesSel.map(m => ({
+    id: m, nom: nomMetrica(m),
+    dades: agregar(files, m, cData.index + ':dia', files.length)
+  }));
+
+  renderitzarPissarraHores(files, series, llista, maxEntrades, senseHora);
+}
+
+function renderitzarPissarraHores(files, series, llista, maxEntrades, senseHora) {
+  const cos = document.getElementById('pissarraCos');
+  cos.innerHTML = '';
+
+  const kpis = document.createElement('div');
+  kpis.className = 'kpis';
+  calcularKPIs(files, series).forEach((t, i) => {
+    const div = document.createElement('div');
+    div.className = 'kpi ' + (i % 3 === 1 ? 'verd' : (i % 3 === 2 ? 'blau' : ''));
+    div.innerHTML = '<div class="kpi-num">' + t.valor + '</div><div class="kpi-lab">' + t.etiqueta + '</div>';
+    kpis.appendChild(div);
+  });
+  cos.appendChild(kpis);
+
+  const card = document.createElement('div');
+  card.className = 'card-taula';
+
+  const nomsMetriques = series.map(s => nomMetricaNet(s.id));
+  let avisos = '';
+  if (maxEntrades > 8) {
+    avisos += '<p class="taula-nota">Hi ha dies amb ' + maxEntrades + ' entrades. Si vols veure-ho més clar, ' +
+              'tria un punt concret a «Mostrar només».</p>';
+  }
+  if (senseHora > 0) {
+    avisos += '<p class="taula-nota">' + senseHora + ' registre' + (senseHora === 1 ? '' : 's') +
+              ' no porta' + (senseHora === 1 ? '' : 'n') + ' hora i no surt' + (senseHora === 1 ? '' : 'en') + ' aquí.</p>';
+  }
+
+  const titol = '<div class="card-grafic-titol">Detall per hores</div>' +
+    '<div class="card-grafic-sub">Cada columna és una entrada del dia, amb l\'hora i ' +
+    escapar(nomsMetriques.join(' · ')) + ' · ' + llista.length +
+    (llista.length === 1 ? ' dia' : ' dies') + '</div>';
+
+  // Quants punts diferents hi ha? Si n'hi ha més d'un, els mostrem a cada cel·la.
+  const puntsVistos = {};
+  llista.forEach(d => d.entrades.forEach(e => { if (e.punt) puntsVistos[e.punt] = 1; }));
+  const mostrarPunt = Object.keys(puntsVistos).length > 1;
+
+  let html = titol + avisos + '<div class="taula-scroll"><table class="dades taula-hores"><thead><tr><th>Data</th>';
+  for (let i = 1; i <= maxEntrades; i++) html += '<th>Entrada ' + i + '</th>';
+  html += '</tr></thead><tbody>';
+
+  llista.forEach(dia => {
+    html += '<tr><td class="cel-dia">' + escapar(dia.etiqueta) + '</td>';
+    for (let i = 0; i < maxEntrades; i++) {
+      const e = dia.entrades[i];
+      if (!e) { html += '<td class="cel-buida">—</td>'; continue; }
+      const valors = e.valors.map(function (v, k) {
+        return (series.length > 1 ? escapar(nomMetricaNet(series[k].id)) + ' ' : '') + formatarNum(v);
+      }).join(' · ');
+      html += '<td class="cel-hora">' +
+        '<span class="ch-hora">' + escapar(e.hora) + '</span>' +
+        '<span class="ch-valor">' + valors + '</span>' +
+        (mostrarPunt && e.punt ? '<span class="ch-punt">' + escapar(e.punt) + '</span>' : '') +
+        '</td>';
+    }
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+
+  card.innerHTML = html;
+  cos.appendChild(card);
 }
 
 // ---------- Filtre de MES ----------
@@ -634,7 +803,9 @@ function generarInforme() {
 
   const puntsActius = (filtrePunts && filtrePunts.actiu && filtrePunts.valorsSel.size > 0);
 
-  if (puntsActius) {
+  if (granDe(agruparSel) === 'hores') {
+    generarInformeHores(files);
+  } else if (puntsActius) {
     generarInformePunts(files);
   } else {
     generarInformeNormal(files);
@@ -826,6 +997,7 @@ function agregar(files, metrica, agrupar, totalFiltrat) {
 
 // Clau d'ordenació cronològica (invisible) segons la granularitat
 function ordreData(v, gran) {
+  if (gran === 'franja') { const dl = dataLocal(v); return dl ? dosDigits(dl.getHours()) : '99'; }
   const m = String(v).match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (!m) return String(v);
   if (gran === 'any') return m[1];
@@ -843,6 +1015,7 @@ function semblaData(entrades) {
 }
 function formatarData(v, gran) {
   if (!v) return '(sense data)';
+  if (gran === 'franja') { const dl = dataLocal(v); return dl ? (dosDigits(dl.getHours()) + ':00 h') : '(sense hora)'; }
   const m = String(v).match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (!m) return String(v);
   if (gran === 'any') return m[1];
