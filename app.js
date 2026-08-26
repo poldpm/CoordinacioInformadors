@@ -10,6 +10,7 @@ let columnes = [];
 let vistaActual = 'barres';
 let filtres = [];
 let filtrePunts = null;   // sub-filtre de punts (itineràncies)
+let filtreMesos = new Set();   // mesos triats ('AAAA-MM'); buit = tots
 let agruparSel = null;   // com es reparteixen les dades (índex de columna o 'idx:granularitat')
 let metriquesSel = [];   // array de mètriques seleccionades (multi)
 let chartActual = null;
@@ -227,6 +228,7 @@ function muntarControls() {
   agruparSel = null;
   muntarMetriques();
   muntarAgrupar();
+  muntarFiltreMesos();
   muntarFiltresRapids();
 }
 
@@ -327,6 +329,67 @@ function construirOpcionsAgrupar() {
     ops.push({ nom: 'Per dia', valor: cData.index + ':dia' });
   }
   return ops;
+}
+
+// ---------- Filtre de MES ----------
+// Llista els mesos que realment hi ha a les dades (el més recent primer).
+// Fem servir el mateix criteri que l'agrupació "Per mes", així el filtre i
+// el gràfic sempre diuen el mateix.
+function mesosDisponibles() {
+  const col = colData();
+  if (!col || !dades) return [];
+  const vistos = new Set();
+  dades.files.forEach(f => {
+    const m = String(f[col.index] || '').match(/^(\d{4})-(\d{2})/);
+    if (m) vistos.add(m[1] + '-' + m[2]);
+  });
+  return Array.from(vistos).sort().reverse();
+}
+
+function etiquetaMes(clau) {
+  const p = String(clau).split('-');
+  const nom = NOMS_MES[Number(p[1]) - 1];
+  return nom ? (nom + ' ' + p[0]) : String(clau);
+}
+
+function muntarFiltreMesos() {
+  const bloc = document.getElementById('blocMesos');
+  const cont = document.getElementById('filtreMesos');
+  if (!bloc || !cont) return;
+  filtreMesos = new Set();
+  cont.innerHTML = '';
+
+  const mesos = mesosDisponibles();
+  if (mesos.length === 0) { bloc.style.display = 'none'; return; }
+  bloc.style.display = '';
+
+  mesos.forEach(clau => {
+    const chip = document.createElement('button');
+    chip.className = 'filtre-chip';
+    chip.textContent = etiquetaMes(clau);
+    chip.addEventListener('click', () => {
+      if (filtreMesos.has(clau)) { filtreMesos.delete(clau); chip.classList.remove('sel'); }
+      else { filtreMesos.add(clau); chip.classList.add('sel'); }
+    });
+    cont.appendChild(chip);
+  });
+}
+
+// Text llegible del que s'està mostrant (per als quadres de Rècords i
+// Recompte, perquè quedi clar què s'hi està comptant).
+function resumFiltresActius() {
+  const parts = [];
+  if (filtreMesos && filtreMesos.size > 0) {
+    parts.push(Array.from(filtreMesos).sort().map(etiquetaMes).join(', '));
+  }
+  filtres.forEach(g => {
+    if (g.valorsSel && g.valorsSel.size > 0) parts.push(Array.from(g.valorsSel).join(', '));
+  });
+  if (filtrePunts && filtrePunts.actiu && filtrePunts.valorsSel.size > 0) {
+    const n = filtrePunts.valorsSel.size;
+    parts.push(n + (n === 1 ? ' punt triat' : ' punts triats'));
+  }
+  return parts.length ? parts.join(' · ') : null;
 }
 
 // ---------- Filtres ràpids (caselles per mostrar només certs valors) ----------
@@ -539,6 +602,11 @@ document.getElementById('btnNetejarMetriques').addEventListener('click', () => {
   document.querySelectorAll('#metriquesChips .chip-metrica').forEach(c => c.classList.remove('sel'));
 });
 
+document.getElementById('btnNetejarMesos').addEventListener('click', () => {
+  filtreMesos.clear();
+  document.querySelectorAll('#filtreMesos .filtre-chip').forEach(c => c.classList.remove('sel'));
+});
+
 document.getElementById('btnNetejarFiltres').addEventListener('click', () => {
   filtres.forEach(g => g.valorsSel.clear());
   document.querySelectorAll('#filtresRapids .filtre-chip').forEach(c => c.classList.remove('sel'));
@@ -680,10 +748,18 @@ function aplicarFiltres() {
   const grupsActius = filtres.filter(g => g.valorsSel && g.valorsSel.size > 0);
   const puntsActius = (filtrePunts && filtrePunts.actiu && filtrePunts.valorsSel.size > 0)
     ? filtrePunts : null;
+  const mesosActius = (filtreMesos && filtreMesos.size > 0) ? filtreMesos : null;
+  const colD = mesosActius ? colData() : null;
 
-  if (grupsActius.length === 0 && !puntsActius) return dades.files.slice();
+  if (grupsActius.length === 0 && !puntsActius && !mesosActius) return dades.files.slice();
 
   return dades.files.filter(fila => {
+    // filtre de mes
+    if (mesosActius) {
+      if (!colD) return false;
+      const md = String(fila[colD.index] || '').match(/^(\d{4})-(\d{2})/);
+      if (!md || !mesosActius.has(md[1] + '-' + md[2])) return false;
+    }
     // filtres normals (àrea, tipus, zona...)
     const passaFiltres = grupsActius.every(g => g.valorsSel.has(String(fila[g.colIndex])));
     if (!passaFiltres) return false;
@@ -1229,18 +1305,31 @@ function colZona() {
          columnes.find(c => c.nom.toLowerCase().trim() === 'area');
 }
 
+// Capçalera dels quadres: diu exactament què s'hi està comptant.
+function capcaleraFiltre_(nFiles) {
+  const resum = resumFiltresActius();
+  const text = resum ? ('Només: ' + resum) : 'Totes les dades';
+  return '<p class="modal-filtre">' + escapar(text) +
+         ' · ' + nFiles + (nFiles === 1 ? ' registre' : ' registres') + '</p>';
+}
+
 // ---------- RECOMPTE TOTAL ----------
 function obrirRecompte() {
   const items = metriquesItem();
   const cos = document.getElementById('modalCos');
+  // Compta NOMÉS el que s'està mirant (mes, àrea, punts... triats)
+  const filesRec = dades ? aplicarFiltres() : [];
 
-  if (!dades || dades.files.length === 0) {
-    cos.innerHTML = '<p class="modal-buit">Encara no hi ha dades registrades.</p>';
+  if (!dades || filesRec.length === 0) {
+    cos.innerHTML = '<p class="modal-buit">' +
+      ((dades && dades.files.length) ? 'No hi ha dades amb el que has triat.' : 'Encara no hi ha dades registrades.') +
+      '</p>';
   } else {
-    let html = '<div class="recompte-grid">';
+    let html = capcaleraFiltre_(filesRec.length);
+    html += '<div class="recompte-grid">';
     items.forEach(it => {
       let total = 0;
-      dades.files.forEach(f => { total += it.fn(f); });
+      filesRec.forEach(f => { total += it.fn(f); });
       total = Math.round(total * 100) / 100;
       html += '<div class="recompte-item"><div class="recompte-num">' + formatarNum(total) +
               '</div><div class="recompte-lab">' + escapar(it.nom) + '</div></div>';
@@ -1261,9 +1350,13 @@ function obrirRecords() {
   const cos = document.getElementById('modalCos');
   const cData = colData();
   const cZona = colZona();
+  // Els rècords es calculen NOMÉS sobre el que s'està mirant
+  const filesRec = dades ? aplicarFiltres() : [];
 
-  if (!dades || dades.files.length === 0) {
-    cos.innerHTML = '<p class="modal-buit">Encara no hi ha dades registrades.</p>';
+  if (!dades || filesRec.length === 0) {
+    cos.innerHTML = '<p class="modal-buit">' +
+      ((dades && dades.files.length) ? 'No hi ha dades amb el que has triat.' : 'Encara no hi ha dades registrades.') +
+      '</p>';
   } else if (!cData) {
     cos.innerHTML = '<p class="modal-buit">No es poden calcular rècords sense una columna de data.</p>';
   } else {
@@ -1274,7 +1367,7 @@ function obrirRecords() {
       { nom: 'Mes', clau: f => mesDe(f[cData.index]) }
     ];
 
-    let html = '';
+    let html = capcaleraFiltre_(filesRec.length);
     periodes.forEach(per => {
       html += '<div class="records-seccio">Per ' + per.nom.toLowerCase() + '</div>';
       html += '<table class="taula-records"><thead><tr><th>Mètrica</th><th>Rècord</th><th>Quan</th>';
@@ -1282,7 +1375,7 @@ function obrirRecords() {
       html += '</tr></thead><tbody>';
 
       items.forEach(it => {
-        const rec = recordDe(dades.files, per.clau, it.fn, cZona);
+        const rec = recordDe(filesRec, per.clau, it.fn, cZona);
         html += '<tr><td class="metrica">' + escapar(it.nom) + '</td>' +
                 '<td class="valor">' + formatarNum(rec.valor) + '</td>' +
                 '<td class="quan">' + escapar(rec.quan) + '</td>';

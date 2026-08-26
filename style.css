@@ -798,3 +798,15 @@ table.dades tr:hover td { background: rgba(45,90,61,0.03); }
   z-index: 2;
   box-shadow: 0 1px 0 rgba(22,38,29,0.12);
 }
+
+/* Capçalera dels quadres de Rècords/Recompte: què s'hi està comptant */
+.modal-filtre {
+  margin: 0 0 16px;
+  padding: 9px 13px;
+  background: var(--pissarra2);
+  border-left: 3px solid var(--senyal);
+  border-radius: 6px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--tinta2);
+}

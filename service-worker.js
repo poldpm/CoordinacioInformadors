@@ -1,4 +1,4 @@
-const CACHE_NAME = 'panell-dades-v14';
+const CACHE_NAME = 'panell-dades-v15';
 const ARXIUS = [
   './', './index.html', './style.css', './app.js', './config.js',
   './manifest.json', './icons/icon-192.png', './icons/icon-512.png'
